@@ -1,0 +1,22 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Login Page</title>
+        <script src="source/login.js"></script>
+    </head>
+    <body>
+        <h2>Login</h2>
+        <form id="loginForm" onsubmit="login(event)">
+            <div id="error" style="color: red; display: none;"></div>
+            <label for="username">Username</label><br />
+            <input type="text" id="username" name="username" required autocomplete="username" /><br /><br />
+            
+            <label for="password">Password</label><br />
+            <input type="password" id="password" name="password" required autocomplete="current-password" /><br /><br />
+            
+            <button type="submit">Log In</button>
+        </form>
+    </body>
+    </html>
