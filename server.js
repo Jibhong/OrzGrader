@@ -2,84 +2,88 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const express = require('express');
+
+const { dbAddUser, dbCheckUser } = require('./dbhandler');
+
+(async () => {
+    await dbAddUser('alice', 'mypassword');
+
+    const valid = await dbCheckUser('alice', 'mypassword');
+    console.log('Password valid?', valid);
+})();
+
+const app = express();
+
+app.use(express.json());
+
+app.get('/', (req, res) => {
+    const indexPath = path.join(__dirname, 'login.html');
+    res.sendFile(indexPath);
+});
+
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ message: 'Missing credentials' });
+    }
+
+    const valid = await dbCheckUser(username, password);
+    if (valid) {
+        res.json({ message: 'Login successful' });
+    } else {
+        res.status(401).json({ message: 'Invalid credentials' });
+    }
+});
+
+app.get('/source/:rest', (req, res) => {
+    // Extract requested file path after /source/
+    const fileName = req.params.rest; // Express wildcard param
+    console.log(fileName);
+    const filePath = path.join(__dirname, fileName);
+
+    // Optional: restrict to certain extensions for security
+    const allowedExts = ['.js', '.css', '.html', '.png', '.jpg', '.jpeg', '.gif', '.svg'];
+    const ext = path.extname(fileName).toLowerCase();
+
+    if (!allowedExts.includes(ext)) {
+        return res.status(403).send('Forbidden file type');
+    }
+
+    // Set MIME types
+    const contentTypes = {
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.html': 'text/html',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml'
+    };
+    const contentType = contentTypes[ext] || 'application/octet-stream';
+
+    fs.readFile(filePath, (err, data) => {
+        if (err) {
+            res.status(404).send('File not found');
+            return;
+        }
+        res.set('Content-Type', contentType);
+        res.send(data);
+    });
+});
+
+app.use((req, res) => {
+    res.status(404).send('Not found');
+});
+
 
 const options = {
-    key: fs.readFileSync(path.join(__dirname, 'key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, 'cert.pem'))
+    key: fs.readFileSync('./key.pem'),
+    cert: fs.readFileSync('./cert.pem')
 };
 
-https.createServer(options, (req, res) => {
-    const parsedUrl = url.parse(req.url);
-    if (req.method === 'GET' && req.url === '/') {
-        const indexPath = path.join(__dirname, 'login.html');
-        fs.readFile(indexPath, (err, data) => {
-            if (err) {
-                res.writeHead(500);
-                res.end('Error loading login.html');
-                return;
-            }
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(data);
-        });
-    }else if (parsedUrl.pathname.startsWith('/source/')) {
-        const fileName = parsedUrl.pathname.replace('/source/', '');
-        const filePath = path.join(__dirname, fileName);
-
-        // Optionally restrict to only certain file types or use a MIME lookup
-        const ext = path.extname(fileName);
-        const contentTypes = {
-            '.js': 'application/javascript',
-            '.css': 'text/css',
-            '.html': 'text/html',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.gif': 'image/gif',
-            '.svg': 'image/svg+xml'
-        };
-        const contentType = contentTypes[ext] || 'application/octet-stream';
-
-        fs.readFile(filePath, (err, data) => {
-            if (err) {
-                res.writeHead(404);
-                res.end('File not found');
-                return;
-            }
-            res.writeHead(200, { 'Content-Type': contentType });
-            res.end(data);
-        });
-    }else if (req.method === 'POST' && req.url === '/login') {
-        let body = '';
-        req.on('data', chunk => {
-            body += chunk;
-        });
-        req.on('end', () => {
-            try {
-                const data = JSON.parse(body);
-                const { username, password } = data;
-
-                console.log('Received login:', username, password);
-
-                // Dummy validation
-                if (username && password) {
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ message: 'Login successful' }));
-                } else {
-                    res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ message: 'Missing credentials' }));
-                }
-            } catch (err) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: 'Invalid JSON' }));
-            }
-        });
-    } else {
-        // Redirect to login page
-        res.writeHead(302, { 'Location': '/' });
-        res.end();
-        // res.writeHead(404, { 'Content-Type': 'text/html' });
-        // res.end('error');
-    }
-}).listen(6655, () => {
+https.createServer(options, app).listen(6655, () => {
     console.log('HTTPS Server running at https://localhost:6655/');
 });
