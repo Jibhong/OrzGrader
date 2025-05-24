@@ -18,5 +18,28 @@
             
             <button type="submit">Log In</button>
         </form>
+
+        <form id="registerForm" onsubmit="register(event)">
+            <label for="username">Username</label><br />
+            <input type="text" id="username" name="username"/><br /><br />
+            
+            <label for="password">Password</label><br />
+            <input type="password" id="password" name="password"/><br /><br />
+
+            <label for="password">Confirm Password</label><br />
+            <input type="password" id="confirmpassword" name="confirmpassword"/><br /><br />
+            
+            <button type="submit">Register</button>
+        </form>
+        
+        <form id="removeUserForm" onsubmit="removeUser(event)">
+            <label for="username">Username</label><br />
+            <input type="text" id="username" name="username"/><br /><br />
+            
+            <label for="password">Password</label><br />
+            <input type="password" id="password" name="password"/><br /><br />
+            
+            <button type="submit">Remove User</button>
+        </form>
     </body>
     </html>

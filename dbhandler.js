@@ -34,7 +34,43 @@ async function dbCheckUser(username, password) {
     return bcrypt.compare(password, rows[0].password);
 }
 
+async function dbUserExists(username) {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+        'SELECT 1 FROM users WHERE username = ? LIMIT 1',
+        [username]
+    );
+    await connection.end();
+
+    return rows.length > 0;
+}
+
+async function dbPrintAllUsers() {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute('SELECT username, password FROM users');
+    await connection.end();
+
+    rows.forEach(user => {
+        console.log(`Username: ${user.username}, Password: ${user.password}`);
+    });
+}
+
+async function dbRemoveUser(username) {
+    const connection = await mysql.createConnection(dbConfig);
+    const [result] = await connection.execute(
+        'DELETE FROM users WHERE username = ?',
+        [username]
+    );
+    await connection.end();
+
+    return result.affectedRows > 0; // true if a user was deleted
+}
+
+
 module.exports = {
     dbAddUser,
-    dbCheckUser
+    dbCheckUser,
+    dbUserExists,
+    dbRemoveUser,
+    dbPrintAllUsers
 };

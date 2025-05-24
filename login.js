@@ -35,3 +35,82 @@ function login(event) {
 
     return false; // prevent form from submitting normally
 }
+
+function register(event) {
+    event.preventDefault(); // Prevent default form submission
+    const form = document.getElementById('registerForm');
+
+    const username = form.username.value.trim();
+    const password = form.password.value;
+    const confirmpassword = form.confirmpassword.value;
+
+    if (!username || !password ||!confirmpassword) {
+        alert('Please enter both username and password.');
+        return false; // prevent submission
+    }
+
+    if (password != confirmpassword) {
+        alert('Password not matching');
+        return false; // prevent submission
+    }
+
+    fetch('/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(errorData => {
+                throw new Error(errorData.message || 'Register failed');
+            });
+        }
+        return res.json();
+    })
+    .then(res => {
+        alert(res.message);
+    })
+    .catch(error => {
+        alert(error.message || 'An error occurred. Please try again.');
+    });
+
+    return false; // prevent form from submitting normally
+}
+
+function removeUser(event) {
+    event.preventDefault(); // Prevent default form submission
+    const form = document.getElementById('removeUserForm');
+
+    const username = form.username.value.trim();
+    const password = form.password.value;
+    if (!username || !password) {
+        alert('Please enter both username and password.');
+        return false; // prevent submission
+    }
+
+    fetch('/removeUser', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(errorData => {
+                throw new Error(errorData.message || 'Remove User failed');
+            });
+        }
+        return res.json();
+    })
+    .then(res => {
+        alert(res.message);
+    })
+    .catch(error => {
+        alert(error.message || 'An error occurred. Please try again.');
+    });
+
+    return false; // prevent form from submitting normally
+}
