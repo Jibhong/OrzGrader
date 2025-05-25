@@ -3,18 +3,38 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const express = require('express');
+const bcrypt = require('bcrypt');
+const fs = require('fs');
 
 const { dbAddUser, dbRemoveUser, dbCheckUser, dbUserExists, dbPrintAllUsers } = require('./dbhandler');
+const { RANDOM } = require('mysql/lib/PoolSelector');
 
-dbPrintAllUsers();
+const secretSalt = process.env.SECRET_SALT;
+
+//{username,time,token}
+const onlineUsers = new Map();
+/**
+ * Adds or refreshes a user in the onlineUsers Map
+ * @param {string} username
+ * @param {string} token
+ */
+
+const configText = fs.readFileSync('settings.config', 'utf-8');
+const config = {};
+configText.split('\n').forEach(line => {
+    const [key, value] = line.split('=');
+    if (key && value) {
+        config[key.trim()] = value.trim();
+    }
+});
 
 (async () => {
     const userExist = await dbUserExists('admin')
-    if(!userExist){
-        await dbAddUser('admin', '1234');
+    if(userExist){
+        await dbRemoveUser('admin');
     }
-    const valid = await dbCheckUser('admin', '1234');
-    console.log('Password valid?', valid);
+    await dbAddUser('admin', '1234', 'admin');
+    await dbPrintAllUsers();
 })();
 
 const app = express();
@@ -33,9 +53,10 @@ app.post('/login', async (req, res) => {
 
     const valid = await dbCheckUser(username, password);
 
-    if (valid) return res.json({ message: 'Login successful' });
+    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+    res.json({ message: 'Login successful' , token: token});
 
-    res.status(401).json({ message: 'Invalid credentials' });
+    
 });
 
 app.post('/register', async (req, res) => {

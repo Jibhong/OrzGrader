@@ -9,13 +9,15 @@ const dbConfig = {
     database: process.env.DB_NAME
 };
 
+const secretSalt = process.env.SECRET_SALT;
+
 // Add a new user with hashed password
-async function dbAddUser(username, password) {
+async function dbAddUser(username, password, role = 'user') {
     const connection = await mysql.createConnection(dbConfig);
-    const hashed = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password+secretSalt, 10);
     await connection.execute(
-        'INSERT INTO users (username, password) VALUES (?, ?)',
-        [username, hashed]
+        'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+        [username, hashed, role]
     );
     await connection.end();
 }
@@ -31,7 +33,7 @@ async function dbCheckUser(username, password) {
 
     if (rows.length === 0) return false; // user not found
 
-    return bcrypt.compare(password, rows[0].password);
+    return bcrypt.compare(password+secretSalt, rows[0].password);
 }
 
 async function dbUserExists(username) {
@@ -47,11 +49,12 @@ async function dbUserExists(username) {
 
 async function dbPrintAllUsers() {
     const connection = await mysql.createConnection(dbConfig);
-    const [rows] = await connection.execute('SELECT username, password FROM users');
+    const [rows] = await connection.execute('SELECT username, password, role FROM users');
     await connection.end();
 
     rows.forEach(user => {
-        console.log(`Username: ${user.username}, Password: ${user.password}`);
+        console.log(`Username: ${user.username}, Role: ${user.role}`);
+        // console.log(`Username: ${user.username}, Password: ${user.password}, Role: ${user.role}`);
     });
 }
 

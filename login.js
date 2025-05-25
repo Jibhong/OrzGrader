@@ -27,6 +27,7 @@ function login(event) {
     })
     .then(res => {
         alert(res.message);
+        localStorage.setItem('token',res.token);
         window.location.href = '/dashboard'; // example redirect
     })
     .catch(error => {
