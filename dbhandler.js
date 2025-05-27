@@ -69,11 +69,24 @@ async function dbRemoveUser(username) {
     return result.affectedRows > 0; // true if a user was deleted
 }
 
+async function dbGetRole(username) {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+        'SELECT role FROM users WHERE username = ?',
+        [username]
+    );
+    await connection.end();
+
+    if (rows.length === 0) return null;
+    return rows[0].role;
+}
+
 
 module.exports = {
     dbAddUser,
     dbCheckUser,
     dbUserExists,
     dbRemoveUser,
-    dbPrintAllUsers
+    dbPrintAllUsers,
+    dbGetRole
 };

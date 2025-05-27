@@ -1,0 +1,10 @@
+[
+    {
+        "role": "user",
+        "access": ["tasks"]
+    },
+    {
+        "role": "admin",
+        "access": ["tasks"]
+    }
+]

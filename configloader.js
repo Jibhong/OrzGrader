@@ -1,13 +1,6 @@
 const fs = require('fs');
 
-/**
- * Loads key-value settings from a config file and returns them as an object.
- * Supports basic type parsing: numbers, booleans, and strings.
- *
- * @param {string} filepath - Path to the config file
- * @returns {Object} Parsed configuration object
- */
-function loadConfig(filepath) {
+function cfLoadConfig(filepath) {
     const config = {};
     const raw = fs.readFileSync(filepath, 'utf-8');
 
@@ -30,4 +23,12 @@ function loadConfig(filepath) {
     return config;
 }
 
-module.exports = loadConfig;
+function cfLoadJson(filepath) {
+    const raw = fs.readFileSync(filepath, 'utf-8');
+    return JSON.parse(raw);
+}
+
+module.exports = {
+    cfLoadConfig,
+    cfLoadJson
+};

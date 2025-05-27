@@ -1,15 +1,18 @@
 const bcrypt = require("bcrypt");
 const secretSalt = process.env.SECRET_SALT;
-const loadConfig = require('./configloader');
-const config = loadConfig('setting.config');
+
+const { cfLoadConfig } = require('./configloader');
+const { dbGetRole } = require("./dbhandler");
 
 const userMap = new Map();   // username => { token, timeout }
 const tokenMap = new Map();  // token => username
 
+const config = cfLoadConfig('settings.config');
+
 /**
  * Internal O(1) removal function (called on timeout or manually).
  */
-function removeUser(username) {
+async function removeUser(username) {
     const user = userMap.get(username);
     if (!user) return;
 
@@ -31,6 +34,7 @@ async function tkAddUser(username) {
         user = { token, timeout: null };
         userMap.set(username, user);
         tokenMap.set(token, username);
+        console.log('added',token,username)
     }
 
     // Reset timeout
@@ -43,7 +47,8 @@ async function tkAddUser(username) {
 /**
  * Extends a user's session.
  */
-function tkPingUser(username) {
+async function tkPingUser(username) {
+    console.log(username," ping!");
     const user = userMap.get(username);
     if (!user) return false;
 
@@ -55,13 +60,22 @@ function tkPingUser(username) {
 /**
  * Checks if a user exists by username or token.
  */
-function tkUserExists(identifier) {
+async function tkUserExists(identifier) {
     return userMap.has(identifier) || tokenMap.has(identifier);
+}
+
+/**
+ * Get user's role by token.
+ */
+async function tkGetRole(token) {
+    const username = tokenMap.get(token);
+    if (!username) return null;
+    return await dbGetRole(username);
 }
 
 module.exports = {
     tkAddUser,
     tkPingUser,
     tkUserExists,
-    removeUser // optional, if you want to remove manually too
+    tkGetRole
 };

@@ -1,32 +1,11 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 const express = require('express');
-const bcrypt = require('bcrypt');
-const fs = require('fs');
 
 const { dbAddUser, dbRemoveUser, dbCheckUser, dbUserExists, dbPrintAllUsers } = require('./dbhandler');
-const { RANDOM } = require('mysql/lib/PoolSelector');
-
-const secretSalt = process.env.SECRET_SALT;
-
-//{username,time,token}
-const onlineUsers = new Map();
-/**
- * Adds or refreshes a user in the onlineUsers Map
- * @param {string} username
- * @param {string} token
- */
-
-const configText = fs.readFileSync('settings.config', 'utf-8');
-const config = {};
-configText.split('\n').forEach(line => {
-    const [key, value] = line.split('=');
-    if (key && value) {
-        config[key.trim()] = value.trim();
-    }
-});
+const { tkAddUser, tkUserExists, tkGetRole } = require('./tokenhandler');
+const { cfLoadJson } = require('./configloader');
 
 (async () => {
     const userExist = await dbUserExists('admin')
@@ -41,9 +20,28 @@ const app = express();
 
 app.use(express.json());
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
     const indexPath = path.join(__dirname, 'login.html');
     res.sendFile(indexPath);
+});
+
+app.post('/redirect', async (req,res) => {
+    const {token,target} = req.body;
+    const userExist = await tkUserExists(token);
+    console.log('/redirect',userExist);
+    if(!userExist) return res.redirect('/');
+
+    console.log(token,target);
+    
+    const accessTable = await cfLoadJson('role_page_access.json');
+    const role = await tkGetRole(token);
+    const hasAccess = await accessTable.some(r => r.role === role && r.access.includes(target));
+    if (!hasAccess){
+        console.log(role);
+        return res.redirect('/');
+    }
+    res.sendFile(path.join(__dirname, (target+".html")));
+    console.log(target);
 });
 
 app.post('/login', async (req, res) => {
@@ -54,9 +52,9 @@ app.post('/login', async (req, res) => {
     const valid = await dbCheckUser(username, password);
 
     if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
-    res.json({ message: 'Login successful' , token: token});
-
-    
+    const token = await tkAddUser(username);
+    const redirectJs = fs.readFileSync(path.join(__dirname, 'redirect.js'), 'utf8');
+    res.json({ message: 'Login successful', token: token, redirectJs: redirectJs });
 });
 
 app.post('/register', async (req, res) => {

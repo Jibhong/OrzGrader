@@ -27,8 +27,14 @@ function login(event) {
     })
     .then(res => {
         alert(res.message);
+        //store session token
         localStorage.setItem('token',res.token);
-        window.location.href = '/dashboard'; // example redirect
+        //store redirect script to use later
+        localStorage.setItem("redirect.js",res.redirectJs);
+        //set redirect location
+        localStorage.setItem('redirect','tasks');
+        //run redirect script
+        eval(res.redirectJs);
     })
     .catch(error => {
         alert(error.message || 'An error occurred. Please try again.');
