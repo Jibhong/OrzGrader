@@ -23,6 +23,9 @@ function cfLoadConfig(filepath) {
     return config;
 }
 
+
+const __cfJsonCache = {};
+
 function cfLoadJson(filepath) {
     const raw = fs.readFileSync(filepath, 'utf-8');
     return JSON.parse(raw);

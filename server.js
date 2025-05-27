@@ -3,9 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 
-const { dbAddUser, dbRemoveUser, dbCheckUser, dbUserExists, dbPrintAllUsers } = require('./dbhandler');
-const { tkAddUser, tkUserExists, tkGetRole } = require('./tokenhandler');
-const { cfLoadJson } = require('./configloader');
+const { dbAddUser, dbRemoveUser, dbCheckUser, dbUserExists, dbPrintAllUsers } = require('./serverSideScript/dbhandler');
+const { tkAddUser, tkUserExists, tkGetRole } = require('./serverSideScript/tokenhandler');
+const { cfLoadJson } = require('./serverSideScript/configloader');
 
 (async () => {
     const userExist = await dbUserExists('admin')
@@ -21,30 +21,37 @@ const app = express();
 app.use(express.json());
 
 app.get('/', async (req, res) => {
-    const indexPath = path.join(__dirname, 'login.html');
+    const indexPath = path.join(__dirname, 'page', 'login.html');
     res.sendFile(indexPath);
 });
 
-app.post('/redirect', async (req,res) => {
+app.post('/api/page/redirect', async (req,res) => {
     const {token,target} = req.body;
     const userExist = await tkUserExists(token);
-    console.log('/redirect',userExist);
     if(!userExist) return res.redirect('/');
 
-    console.log(token,target);
-    
-    const accessTable = await cfLoadJson('role_page_access.json');
+    const accessTable = await cfLoadJson('config/role_page_access.json');
     const role = await tkGetRole(token);
     const hasAccess = await accessTable.some(r => r.role === role && r.access.includes(target));
     if (!hasAccess){
         console.log(role);
         return res.redirect('/');
     }
-    res.sendFile(path.join(__dirname, (target+".html")));
+    res.sendFile(path.join(__dirname, 'page', target+".html"));
     console.log(target);
 });
 
-app.post('/login', async (req, res) => {
+//is user online
+//input token
+//re online: true/false
+app.post('/api/user/online', async (req,res) => {
+    const {token} = req.body;
+    const userExist = await tkUserExists(token);
+    if(!userExist) return res.json({ online: false });
+    res.json({ online: true });
+});
+
+app.post('/api/user/login', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) return res.status(200).json({ message: 'Missing credentials' });
@@ -53,11 +60,11 @@ app.post('/login', async (req, res) => {
 
     if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
     const token = await tkAddUser(username);
-    const redirectJs = fs.readFileSync(path.join(__dirname, 'redirect.js'), 'utf8');
+    const redirectJs = fs.readFileSync(path.join(__dirname, 'clientSideScript', 'redirect.js'), 'utf8');
     res.json({ message: 'Login successful', token: token, redirectJs: redirectJs });
 });
 
-app.post('/register', async (req, res) => {
+app.post('/api/user/register', async (req, res) => {
     const { username, password } = req.body;
     const userExist = await dbUserExists(username)
     if(userExist) return res.status(200).json({ message: 'User already exist' });
@@ -67,7 +74,7 @@ app.post('/register', async (req, res) => {
     res.json({ message: 'Register successful' });
 });
 
-app.post('/removeUser', async (req, res) => {
+app.post('/api/user/remove', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) return res.status(200).json({ message: 'Missing credentials' });
@@ -79,11 +86,11 @@ app.post('/removeUser', async (req, res) => {
     res.json({ message: 'User removed' });
 });
 
-app.get('/source/:rest', (req, res) => {
+app.get('/api/source/:rest', (req, res) => {
     // Extract requested file path after /source/
     const fileName = req.params.rest; // Express wildcard param
     console.log(fileName);
-    const filePath = path.join(__dirname, fileName);
+    const filePath = path.join(__dirname, 'page', fileName);
 
     // Optional: restrict to certain extensions for security
     const allowedExts = ['.js', '.css', '.html', '.png', '.jpg', '.jpeg', '.gif', '.svg'];
@@ -116,14 +123,33 @@ app.get('/source/:rest', (req, res) => {
     });
 });
 
+//problem set related api
+app.post('/api/task/get', async (req,res) => {
+    const {token,chunck} = req.body;
+    const userExist = await tkUserExists(token);
+    if(!userExist) return res.redirect('/');
+
+    const accessTable = await cfLoadJson('config/role_page_access.json');
+    const role = await tkGetRole(token);
+    const hasAccess = await accessTable.some(r => r.role === role && r.access.includes('tasks'));
+    if(!hasAccess) return res.redirect('/');
+
+    if (!hasAccess){
+        console.log(role);
+        return res.redirect('/');
+    }
+    res.sendFile(path.join(__dirname, (target+".html")));
+    console.log(target);
+});
+
 app.use((req, res) => {
     res.status(404).send('Not found');
 });
 
 
 const options = {
-    key: fs.readFileSync('./key.pem'),
-    cert: fs.readFileSync('./cert.pem')
+    key: fs.readFileSync('certificate/key.pem'),
+    cert: fs.readFileSync('certificate/cert.pem')
 };
 
 https.createServer(options, app).listen(6655, () => {

@@ -1,7 +1,7 @@
 const target = localStorage.getItem("redirect");
 if (target) {
     const token = localStorage.getItem("token");
-    fetch('/redirect', {
+    fetch('/api/page/redirect', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

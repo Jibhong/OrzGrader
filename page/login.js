@@ -10,7 +10,7 @@ function login(event) {
         return false; // prevent submission
     }
 
-    fetch('/login', {
+    fetch('/api/user/login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -61,7 +61,7 @@ function register(event) {
         return false; // prevent submission
     }
 
-    fetch('/register', {
+    fetch('/api/user/register', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -97,7 +97,7 @@ function removeUser(event) {
         return false; // prevent submission
     }
 
-    fetch('/removeUser', {
+    fetch('/api/user/remove', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

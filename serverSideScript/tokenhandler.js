@@ -7,7 +7,7 @@ const { dbGetRole } = require("./dbhandler");
 const userMap = new Map();   // username => { token, timeout }
 const tokenMap = new Map();  // token => username
 
-const config = cfLoadConfig('settings.config');
+const config = cfLoadConfig('config/settings.config');
 
 /**
  * Internal O(1) removal function (called on timeout or manually).
