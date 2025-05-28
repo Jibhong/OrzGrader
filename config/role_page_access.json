@@ -1,10 +1,10 @@
 [
     {
         "role": "user",
-        "access": ["tasks"]
+        "access": ["tasks","users"]
     },
     {
         "role": "admin",
-        "access": ["tasks"]
+        "access": ["tasks","users","taskmanager","usermanager","settings"]
     }
 ]
